@@ -1,31 +1,3 @@
-"""
-import json
-from pathlib import Path
-
-# Keep the file beside the program, even when launched from another folder.
-# __file__ is this module's path; .parent gets its folder and / adds a filename.
-HISTORY_FILE = Path(__file__).parent / "game_history.json"
-
-
-def load_game_history():
-    # Return history, or raise a useful error if an existing file is damaged.
-    try:
-        # with closes the file automatically, including when reading fails.
-        # json.load converts the file's JSON text into Python lists/dictionaries.
-        with open(HISTORY_FILE, "r", encoding="utf-8") as file:
-            history = json.load(file)
-    except FileNotFoundError:
-        # A missing file is normal before the first game has been saved.
-        return []
-
-    # Make sure the loaded data has the fields needed by the interface.
-    validate_history(history)
-    return history
-
-"""
-
-# 
-
 import json
 from pathlib import Path
 import logging
@@ -37,11 +9,6 @@ logging.basicConfig(
 
 EXISTING_BOOKINGS_DATA = Path(__file__).resolve().parent / "bookings.json"
 EXISTING_ROOMS_DATA = Path(__file__).resolve().parent / "rooms.json"
-
-
-
-
-
 
 
 # This function 'shoves' the json file into a variable
@@ -64,6 +31,28 @@ def load_existing_bookings():
             logging.info("I guess this means it's about to return")
             return existing_booking_data
         elif not isinstance(existing_booking_data, list):
+            raise ValueError("\nThe JSON file's file 'outer shell' isn't a list, i.e. it's not formatted properly")
+    except ValueError as e:
+        print(e)
+
+
+# Obviously the function below is redundant, and needs to be merged into the one above and made generic
+
+def load_existing_rooms():
+    try:
+        with open(EXISTING_ROOMS_DATA, "r", encoding="utf-8") as file:
+            existing_rooms_data = json.load(file)
+            logging.info("I guess this means it was loaded correctly")
+    except FileNotFoundError:
+        logging.error("Apparently the file wasn't foung")
+        return []
+    
+    # Note: apparently this needs to be dealt with, i.e. it's not supposed to be caught here
+    try:
+        if isinstance(existing_rooms_data, list):
+            logging.info("I guess this means it's about to return")
+            return existing_rooms_data
+        elif not isinstance(existing_rooms_data, list):
             raise ValueError("\nThe JSON file's file 'outer shell' isn't a list, i.e. it's not formatted properly")
     except ValueError as e:
         print(e)
@@ -106,67 +95,3 @@ def test_duplicate_json():
     return True
 
 test_duplicate_json()
-
-"""
- 
-# THE FUNCTION BELOW WRITES DATA TO THE FILE
-
-def save_game(game):
-    # Add a completed game and write the updated list directly to the JSON file.
-    try:
-        # Load first, then append, so earlier games stay in the updated list.
-        history = load_game_history()
-        history.append(game)
-        # Write the full updated list directly to the history file.
-        with open(HISTORY_FILE, "w", encoding="utf-8") as file:
-            # Indentation makes the JSON readable; ensure_ascii=False keeps
-            # non-English names readable instead of writing escape sequences.
-            json.dump(history, file, indent=4, ensure_ascii=False)
-            file.write("\n")
-    except (OSError, ValueError) as error:
-        # Report the problem and let the menu continue without claiming success.
-        print(f"Could not save the game: {error}")
-        return False
-    return True
-
-
-
-"""
-
-
-
-    
-
-
-"""
-
-
-
-def validate_history(history):
-    # Check the basic structure needed to display history and statistics.
-    # Valid JSON can still have the wrong structure, such as {} instead of [].
-    if not isinstance(history, list):
-        raise ValueError("Game history must contain a JSON list.")
-
-    # Cycles through the list in the json file
-    for game in history:
-        if not isinstance(game, dict):
-            raise ValueError("Each saved game must be a dictionary.")
-        # Check keys before using them to avoid an unexpected KeyError later.
-        required_keys = (
-            "player_name", "rounds", "player_score", "computer_score",
-            "winner", "results",
-        )
-        for key in required_keys:
-            if key not in game:
-                raise ValueError(f"A saved game is missing '{key}'.")
-        if not isinstance(game["player_name"], str) or not game["player_name"].strip():
-            raise ValueError("A saved player name is invalid.")
-        for key in ("rounds", "player_score", "computer_score"):
-            # An exact int check also rejects JSON booleans, which Python treats
-            # as a kind of integer when using isinstance(value, int).
-            if type(game[key]) is not int or game[key] < 0:
-                raise ValueError(f"A saved game's '{key}' must be a non-negative integer.")
-
-
-"""
